@@ -1,0 +1,6 @@
+{
+  "name": "AI Business Mastery",
+  "description": "A high-converting, mobile-responsive, long-form pre-sell Bridge Sales Page for the AI Business Mastery digital product.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
