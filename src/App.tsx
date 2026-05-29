@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import {
   Clock,
@@ -76,6 +76,14 @@ export default function App() {
 
   // Scroll/Reading Progress Bar
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Header visibility tracking state and refs
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollYRef = useRef(0);
+  const lastScrollTimeRef = useRef(0);
+  const scrollTicksUpRef = useRef(0);
+  const scrollTicksUpAfterAppearedRef = useRef(0);
+  const lastDirectionRef = useRef<'up' | 'down' | null>(null);
 
   // Exit Intent Modal
   const [showExitModal, setShowExitModal] = useState(false);
@@ -164,17 +172,74 @@ export default function App() {
     setOpenFaq(openFaq === id ? null : id);
   };
 
-  // scroll progress calculation
+  // scroll logic with customized direction tracking and tick counting
   useEffect(() => {
     const handleScroll = () => {
+      const currentScrollY = window.scrollY;
       const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
       if (totalHeight > 0) {
-        setScrollProgress((window.scrollY / totalHeight) * 100);
+        setScrollProgress((currentScrollY / totalHeight) * 100);
       }
+
+      const lastScrollY = lastScrollYRef.current;
+      const lastScrollTime = lastScrollTimeRef.current;
+      const now = Date.now();
+      const timeDiff = now - lastScrollTime;
+
+      // Determine active direction
+      let direction: 'up' | 'down' | null = null;
+      if (currentScrollY > lastScrollY) {
+        direction = 'down';
+      } else if (currentScrollY < lastScrollY) {
+        direction = 'up';
+      }
+
+      const diffY = Math.abs(currentScrollY - lastScrollY);
+      if (direction && diffY > 1) {
+        // Group rapid scroll events together. A distinct scroll occurs if the direction changed or if time gap > 180ms
+        const isDistinctScroll = direction !== lastDirectionRef.current || timeDiff > 180;
+
+        if (isDistinctScroll) {
+          if (direction === 'down') {
+            // Disappear immediately when starting to scroll down
+            setShowHeader(false);
+            // Reset up-scroll counters
+            scrollTicksUpRef.current = 0;
+            scrollTicksUpAfterAppearedRef.current = 0;
+          } else if (direction === 'up') {
+            if (!showHeader) {
+              scrollTicksUpRef.current += 1;
+              if (scrollTicksUpRef.current >= 2) {
+                setShowHeader(true);
+                scrollTicksUpAfterAppearedRef.current = 0;
+              }
+            } else {
+              // Header is already visible. If scroll up occurs twice more, hide it again
+              scrollTicksUpAfterAppearedRef.current += 1;
+              if (scrollTicksUpAfterAppearedRef.current >= 2) {
+                setShowHeader(false);
+              }
+            }
+          }
+          lastDirectionRef.current = direction;
+          lastScrollTimeRef.current = now;
+        }
+      }
+
+      // If they scroll near the top, always show the header and reset counters
+      if (currentScrollY < 15) {
+        setShowHeader(true);
+        scrollTicksUpRef.current = 0;
+        scrollTicksUpAfterAppearedRef.current = 0;
+        lastDirectionRef.current = null;
+      }
+
+      lastScrollYRef.current = currentScrollY;
     };
-    window.addEventListener("scroll", handleScroll);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [showHeader]);
 
   // exit intent hook
   useEffect(() => {
@@ -261,7 +326,7 @@ export default function App() {
       <div className={`absolute bottom-[-5%] right-[-10%] w-[50%] h-[30%] rounded-full blur-[100px] pointer-events-none transition-all duration-500 ${theme === 'dark' ? 'bg-orange-600/5' : 'bg-yellow-300/20'}`} />
 
       {/* FLOATING TOP PROGRESS BAR & URGENCY BLOCK */}
-      <div className={`fixed top-0 left-0 z-50 w-full border-b backdrop-blur-md shadow-xl transition-all duration-300 ${theme === 'dark' ? 'bg-slate-900/80 border-white/5' : 'bg-slate-50/94 border-slate-200/90 shadow-[0_4px_30px_rgba(15,23,42,0.06)]'}`}>
+      <div className={`fixed top-0 left-0 z-50 w-full border-b backdrop-blur-md shadow-xl transition-all duration-500 transform ${showHeader ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none'} ${theme === 'dark' ? 'bg-slate-900/80 border-white/5' : 'bg-slate-50/94 border-slate-200/90 shadow-[0_4px_30px_rgba(15,23,42,0.06)]'}`}>
         <div className="absolute top-0 left-0 h-[3px] bg-gradient-to-r from-cyan-400 to-orange-400 z-50 transition-all duration-150" style={{ width: `${scrollProgress}%` }} />
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3 py-2.5 px-4">
           <div className="flex items-center gap-2">
@@ -314,7 +379,7 @@ export default function App() {
       </div>
 
       {/* MAIN CONTAINER wrapper for long-form landing */}
-      <div className="relative max-w-4xl mx-auto px-4 pt-32 sm:pt-24 pb-32">
+      <div className="relative max-w-4xl mx-auto px-4 pt-52 sm:pt-40 md:pt-36 pb-32">
 
         {/* SECTION 1: THE BRANDING BLOCK (AUTHOR PROFILE) */}
         <div id="author-block" className="flex flex-col items-center text-center mb-10 group">
@@ -678,9 +743,10 @@ export default function App() {
               {/* Bonus 1 (Mobile Funnels) - Left Stacked Card */}
               <div className="absolute left-[5%] sm:left-[12%] w-[150px] sm:w-[200px] h-[190px] sm:h-[250px] z-10 transform -rotate-12 -translate-x-4 transition-all duration-500 hover:rotate-0 hover:scale-110 hover:-translate-y-2 hover:z-40">
                 <TransparentImage 
-                  src="https://i.ibb.co/vvLxzVtZ/1000529616-removebg-preview.jpg" 
+                  src="https://i.ibb.co/PvWTM77x/1000529616-removebg-preview.jpg" 
                   alt="Bonus 1 - Mobile Funnels Mockup" 
                   className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.3)] select-none"
+                  fallbackId="bonus-1"
                 />
               </div>
 
@@ -690,15 +756,17 @@ export default function App() {
                   src="https://i.ibb.co/C3c6LmxK/1000529615-removebg-preview.jpg" 
                   alt="Bonus 2 - African Market Prompts Mockup" 
                   className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.3)] select-none"
+                  fallbackId="bonus-2"
                 />
               </div>
 
               {/* Bonus 3 (24/7 Group Support) - Center Front Card */}
               <div className="absolute w-[170px] sm:w-[220px] h-[210px] sm:h-[270px] z-35 transform -translate-y-2 transition-all duration-500 hover:scale-115 hover:-translate-y-5 hover:z-40">
                 <TransparentImage 
-                  src="https://i.ibb.co/hx6g70W9/1000529681-removebg-preview.jpg" 
+                  src="https://i.ibb.co/7tPHtmzr/1000529681-removebg-preview.jpg" 
                   alt="Bonus 3 - Group Support Mockup" 
                   className="w-full h-full object-contain filter drop-shadow-[0_16px_32px_rgba(0,0,0,0.45)] select-none"
+                  fallbackId="bonus-3"
                 />
               </div>
             </div>
@@ -736,6 +804,7 @@ export default function App() {
                           src={bonus.image} 
                           alt={bonus.title} 
                           className="h-full max-w-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.18)] relative z-10 transition-all duration-500 transform hover:scale-110 hover:-translate-y-2 cursor-pointer"
+                          fallbackId={bonus.id as any}
                         />
                       </div>
                     )}

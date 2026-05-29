@@ -36,7 +36,7 @@ export const BONUS_ITEMS: BonusItem[] = [
     tag: "Bonus 1",
     description: "Skips design overwhelm entirely. Beautiful, high-converting layouts optimized for single-thumb mobile scrolling that you can load in 2 clicks.",
     badge: "Mobile Funnels",
-    image: "https://i.ibb.co/vvLxzVtZ/1000529616-removebg-preview.jpg"
+    image: "https://i.ibb.co/PvWTM77x/1000529616-removebg-preview.jpg"
   },
   {
     id: "bonus-2",
@@ -54,7 +54,7 @@ export const BONUS_ITEMS: BonusItem[] = [
     tag: "Bonus 3",
     description: "Instant support so you never get stuck at midnight. Exchange live strategies, review outreach templates, and troubleshoot alongside eager peers.",
     badge: "24/7 Group Support",
-    image: "https://i.ibb.co/hx6g70W9/1000529681-removebg-preview.jpg"
+    image: "https://i.ibb.co/7tPHtmzr/1000529681-removebg-preview.jpg"
   }
 ];
 
